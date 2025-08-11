@@ -1,0 +1,66 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+.Python
+env/
+venv/
+.venv
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+
+# Model/checkpoint files (RL training)
+models/
+checkpoints/
+*.pkl
+*.pth
+*.h5
+*.model
+
+# Data files
+data/
+results/
+logs/
+*.bag
+
+# Singularity/Apptainer images
+*.sif
+*.simg
+
+# Buffer and cache
+local_buffer/
+*_buffer/
+
+# Gazebo
+gazebo/
+.gazebo/

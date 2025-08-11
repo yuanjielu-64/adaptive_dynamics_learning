@@ -1,0 +1,55 @@
+Bootstrap: docker
+From: ros:noetic
+
+%setup
+    mkdir -p ${APPTAINER_ROOTFS}/jackal_ws/src
+    cd ${APPTAINER_ROOTFS}/jackal_ws/src
+    git clone https://github.com/Daffan/ros_jackal.git
+
+%post -c /bin/bash
+    # Update packages and install dependencies
+    apt-get -y update && apt-get -y install \
+        python3-pip \
+        python3-venv \
+        python3-dev \
+        git \
+        wget \
+        curl \
+        build-essential \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Create virtual environment
+    python3 -m venv /opt/venv
+    export PATH="/opt/venv/bin:$PATH"
+    
+    # Upgrade pip and install Python dependencies
+    pip3 install --upgrade pip setuptools wheel
+    cd /jackal_ws/src/ros_jackal
+    pip3 install -r requirements.txt
+
+    # Clone additional ROS packages
+    cd /jackal_ws/src
+    git clone https://github.com/jackal/jackal.git
+    git clone https://github.com/jackal/jackal_simulator.git
+    git clone https://github.com/jackal/jackal_desktop.git
+    git clone https://github.com/utexas-bwi/eband_local_planner.git
+
+    # Initialize rosdep and build workspace
+    source /opt/ros/noetic/setup.bash
+    cd /jackal_ws
+    rosdep init || true
+    rosdep update
+    rosdep install -y --from-paths src --ignore-src --rosdistro=noetic
+    
+    # Build the workspace
+    catkin_make
+
+%environment
+    export PATH="/opt/venv/bin:$PATH"
+    export PYTHONPATH="/opt/venv/lib/python3.8/site-packages:$PYTHONPATH"
+
+%runscript
+    source /jackal_ws/devel/setup.bash
+    cd /jackal_ws/src/ros_jackal
+    exec "$@"

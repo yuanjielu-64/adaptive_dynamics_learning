@@ -39,7 +39,7 @@ Thumbs.db
 *.bak
 *.backup
 
-# Model/checkpoint files (RL training)
+# Model/checkpoint files (RL training) - but keep configs
 models/
 checkpoints/
 *.pkl
@@ -47,7 +47,7 @@ checkpoints/
 *.h5
 *.model
 
-# Data files
+# Data files - but keep important project data
 data/
 results/
 logs/
@@ -57,13 +57,19 @@ logs/
 *.sif
 *.simg
 
-# Buffer and cache
+# Buffer and cache - but keep project buffers  
 local_buffer/
-*_buffer/
-# But include important project buffers and configs
-!ros_jackal/buffer/
-!ros_jackal/configs/
+temp_buffer/
+cache_buffer/
 
-# Gazebo
+# Gazebo runtime files
 gazebo/
 .gazebo/
+
+# Build artifacts
+build/
+devel/
+install/
+
+# ROS logs
+~/.ros/log/

@@ -1,25 +1,44 @@
-# Python artifacts
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
 *.so
 *.egg
 *.egg-info/
-dist/
-.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Env
+.env
+.venv
 env/
 venv/
-.venv
-.env
+ENV/
+env.bak/
+venv.bak/
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -28,48 +47,31 @@ venv/
 ehthumbs.db
 Thumbs.db
 
-# Log files
-*.log
-
 # Temporary files
 *.tmp
 *.temp
-
-# Backup files
 *.bak
 *.backup
 
-# Model/checkpoint files (RL training) - but keep configs
-models/
-checkpoints/
-*.pkl
-*.pth
-*.h5
-*.model
-
-# Data files - but keep important project data
-data/
-results/
-logs/
-*.bag
-
-# Singularity/Apptainer images
-*.sif
-*.simg
-
-# Buffer and cache - but keep project buffers  
-local_buffer/
-temp_buffer/
-cache_buffer/
-
-# Gazebo runtime files
-gazebo/
-.gazebo/
-
-# Build artifacts
+# Build/Install
 build/
 devel/
 install/
 
-# ROS logs
-~/.ros/log/
+# Container images  
+*.sif
+*.simg
+
+# Large model files
+*.pth
+*.h5
+*.model
+models/checkpoints/
+
+# Runtime logs
+logs/runtime/
+temp_logs/
+
+# Gazebo temp
+.gazebo/models/
+gazebo/worlds/temp/

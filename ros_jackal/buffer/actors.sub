@@ -1,0 +1,759 @@
+    requirements       = InMastodon 
+    +Group              = "GRAD" 
+    +Project            = "AI_ROBOTICS" 
+    +ProjectDescription = "Adaptive Planner Parameter Learning From Reinforcement" 
+    Executable          = executable/actor.sh 
+    Universe            = vanilla
+    getenv              = true
+    transfer_executable = false 
+
+        arguments  = 0
+        queue 1
+
+        arguments  = 1
+        queue 1
+
+        arguments  = 2
+        queue 1
+
+        arguments  = 3
+        queue 1
+
+        arguments  = 4
+        queue 1
+
+        arguments  = 5
+        queue 1
+
+        arguments  = 6
+        queue 1
+
+        arguments  = 7
+        queue 1
+
+        arguments  = 8
+        queue 1
+
+        arguments  = 9
+        queue 1
+
+        arguments  = 10
+        queue 1
+
+        arguments  = 11
+        queue 1
+
+        arguments  = 12
+        queue 1
+
+        arguments  = 13
+        queue 1
+
+        arguments  = 14
+        queue 1
+
+        arguments  = 15
+        queue 1
+
+        arguments  = 16
+        queue 1
+
+        arguments  = 17
+        queue 1
+
+        arguments  = 18
+        queue 1
+
+        arguments  = 19
+        queue 1
+
+        arguments  = 20
+        queue 1
+
+        arguments  = 21
+        queue 1
+
+        arguments  = 22
+        queue 1
+
+        arguments  = 23
+        queue 1
+
+        arguments  = 24
+        queue 1
+
+        arguments  = 25
+        queue 1
+
+        arguments  = 26
+        queue 1
+
+        arguments  = 27
+        queue 1
+
+        arguments  = 28
+        queue 1
+
+        arguments  = 29
+        queue 1
+
+        arguments  = 30
+        queue 1
+
+        arguments  = 31
+        queue 1
+
+        arguments  = 32
+        queue 1
+
+        arguments  = 33
+        queue 1
+
+        arguments  = 34
+        queue 1
+
+        arguments  = 35
+        queue 1
+
+        arguments  = 36
+        queue 1
+
+        arguments  = 37
+        queue 1
+
+        arguments  = 38
+        queue 1
+
+        arguments  = 39
+        queue 1
+
+        arguments  = 40
+        queue 1
+
+        arguments  = 41
+        queue 1
+
+        arguments  = 42
+        queue 1
+
+        arguments  = 43
+        queue 1
+
+        arguments  = 44
+        queue 1
+
+        arguments  = 45
+        queue 1
+
+        arguments  = 46
+        queue 1
+
+        arguments  = 47
+        queue 1
+
+        arguments  = 48
+        queue 1
+
+        arguments  = 49
+        queue 1
+
+        arguments  = 50
+        queue 1
+
+        arguments  = 51
+        queue 1
+
+        arguments  = 52
+        queue 1
+
+        arguments  = 53
+        queue 1
+
+        arguments  = 54
+        queue 1
+
+        arguments  = 55
+        queue 1
+
+        arguments  = 56
+        queue 1
+
+        arguments  = 57
+        queue 1
+
+        arguments  = 58
+        queue 1
+
+        arguments  = 59
+        queue 1
+
+        arguments  = 60
+        queue 1
+
+        arguments  = 61
+        queue 1
+
+        arguments  = 62
+        queue 1
+
+        arguments  = 63
+        queue 1
+
+        arguments  = 64
+        queue 1
+
+        arguments  = 65
+        queue 1
+
+        arguments  = 66
+        queue 1
+
+        arguments  = 67
+        queue 1
+
+        arguments  = 68
+        queue 1
+
+        arguments  = 69
+        queue 1
+
+        arguments  = 70
+        queue 1
+
+        arguments  = 71
+        queue 1
+
+        arguments  = 72
+        queue 1
+
+        arguments  = 73
+        queue 1
+
+        arguments  = 74
+        queue 1
+
+        arguments  = 75
+        queue 1
+
+        arguments  = 76
+        queue 1
+
+        arguments  = 77
+        queue 1
+
+        arguments  = 78
+        queue 1
+
+        arguments  = 79
+        queue 1
+
+        arguments  = 80
+        queue 1
+
+        arguments  = 81
+        queue 1
+
+        arguments  = 82
+        queue 1
+
+        arguments  = 83
+        queue 1
+
+        arguments  = 84
+        queue 1
+
+        arguments  = 85
+        queue 1
+
+        arguments  = 86
+        queue 1
+
+        arguments  = 87
+        queue 1
+
+        arguments  = 88
+        queue 1
+
+        arguments  = 89
+        queue 1
+
+        arguments  = 90
+        queue 1
+
+        arguments  = 91
+        queue 1
+
+        arguments  = 92
+        queue 1
+
+        arguments  = 93
+        queue 1
+
+        arguments  = 94
+        queue 1
+
+        arguments  = 95
+        queue 1
+
+        arguments  = 96
+        queue 1
+
+        arguments  = 97
+        queue 1
+
+        arguments  = 98
+        queue 1
+
+        arguments  = 99
+        queue 1
+
+        arguments  = 100
+        queue 1
+
+        arguments  = 101
+        queue 1
+
+        arguments  = 102
+        queue 1
+
+        arguments  = 103
+        queue 1
+
+        arguments  = 104
+        queue 1
+
+        arguments  = 105
+        queue 1
+
+        arguments  = 106
+        queue 1
+
+        arguments  = 107
+        queue 1
+
+        arguments  = 108
+        queue 1
+
+        arguments  = 109
+        queue 1
+
+        arguments  = 110
+        queue 1
+
+        arguments  = 111
+        queue 1
+
+        arguments  = 112
+        queue 1
+
+        arguments  = 113
+        queue 1
+
+        arguments  = 114
+        queue 1
+
+        arguments  = 115
+        queue 1
+
+        arguments  = 116
+        queue 1
+
+        arguments  = 117
+        queue 1
+
+        arguments  = 118
+        queue 1
+
+        arguments  = 119
+        queue 1
+
+        arguments  = 120
+        queue 1
+
+        arguments  = 121
+        queue 1
+
+        arguments  = 122
+        queue 1
+
+        arguments  = 123
+        queue 1
+
+        arguments  = 124
+        queue 1
+
+        arguments  = 125
+        queue 1
+
+        arguments  = 126
+        queue 1
+
+        arguments  = 127
+        queue 1
+
+        arguments  = 128
+        queue 1
+
+        arguments  = 129
+        queue 1
+
+        arguments  = 130
+        queue 1
+
+        arguments  = 131
+        queue 1
+
+        arguments  = 132
+        queue 1
+
+        arguments  = 133
+        queue 1
+
+        arguments  = 134
+        queue 1
+
+        arguments  = 135
+        queue 1
+
+        arguments  = 136
+        queue 1
+
+        arguments  = 137
+        queue 1
+
+        arguments  = 138
+        queue 1
+
+        arguments  = 139
+        queue 1
+
+        arguments  = 140
+        queue 1
+
+        arguments  = 141
+        queue 1
+
+        arguments  = 142
+        queue 1
+
+        arguments  = 143
+        queue 1
+
+        arguments  = 144
+        queue 1
+
+        arguments  = 145
+        queue 1
+
+        arguments  = 146
+        queue 1
+
+        arguments  = 147
+        queue 1
+
+        arguments  = 148
+        queue 1
+
+        arguments  = 149
+        queue 1
+
+        arguments  = 150
+        queue 1
+
+        arguments  = 151
+        queue 1
+
+        arguments  = 152
+        queue 1
+
+        arguments  = 153
+        queue 1
+
+        arguments  = 154
+        queue 1
+
+        arguments  = 155
+        queue 1
+
+        arguments  = 156
+        queue 1
+
+        arguments  = 157
+        queue 1
+
+        arguments  = 158
+        queue 1
+
+        arguments  = 159
+        queue 1
+
+        arguments  = 160
+        queue 1
+
+        arguments  = 161
+        queue 1
+
+        arguments  = 162
+        queue 1
+
+        arguments  = 163
+        queue 1
+
+        arguments  = 164
+        queue 1
+
+        arguments  = 165
+        queue 1
+
+        arguments  = 166
+        queue 1
+
+        arguments  = 167
+        queue 1
+
+        arguments  = 168
+        queue 1
+
+        arguments  = 169
+        queue 1
+
+        arguments  = 170
+        queue 1
+
+        arguments  = 171
+        queue 1
+
+        arguments  = 172
+        queue 1
+
+        arguments  = 173
+        queue 1
+
+        arguments  = 174
+        queue 1
+
+        arguments  = 175
+        queue 1
+
+        arguments  = 176
+        queue 1
+
+        arguments  = 177
+        queue 1
+
+        arguments  = 178
+        queue 1
+
+        arguments  = 179
+        queue 1
+
+        arguments  = 180
+        queue 1
+
+        arguments  = 181
+        queue 1
+
+        arguments  = 182
+        queue 1
+
+        arguments  = 183
+        queue 1
+
+        arguments  = 184
+        queue 1
+
+        arguments  = 185
+        queue 1
+
+        arguments  = 186
+        queue 1
+
+        arguments  = 187
+        queue 1
+
+        arguments  = 188
+        queue 1
+
+        arguments  = 189
+        queue 1
+
+        arguments  = 190
+        queue 1
+
+        arguments  = 191
+        queue 1
+
+        arguments  = 192
+        queue 1
+
+        arguments  = 193
+        queue 1
+
+        arguments  = 194
+        queue 1
+
+        arguments  = 195
+        queue 1
+
+        arguments  = 196
+        queue 1
+
+        arguments  = 197
+        queue 1
+
+        arguments  = 198
+        queue 1
+
+        arguments  = 199
+        queue 1
+
+        arguments  = 200
+        queue 1
+
+        arguments  = 201
+        queue 1
+
+        arguments  = 202
+        queue 1
+
+        arguments  = 203
+        queue 1
+
+        arguments  = 204
+        queue 1
+
+        arguments  = 205
+        queue 1
+
+        arguments  = 206
+        queue 1
+
+        arguments  = 207
+        queue 1
+
+        arguments  = 208
+        queue 1
+
+        arguments  = 209
+        queue 1
+
+        arguments  = 210
+        queue 1
+
+        arguments  = 211
+        queue 1
+
+        arguments  = 212
+        queue 1
+
+        arguments  = 213
+        queue 1
+
+        arguments  = 214
+        queue 1
+
+        arguments  = 215
+        queue 1
+
+        arguments  = 216
+        queue 1
+
+        arguments  = 217
+        queue 1
+
+        arguments  = 218
+        queue 1
+
+        arguments  = 219
+        queue 1
+
+        arguments  = 220
+        queue 1
+
+        arguments  = 221
+        queue 1
+
+        arguments  = 222
+        queue 1
+
+        arguments  = 223
+        queue 1
+
+        arguments  = 224
+        queue 1
+
+        arguments  = 225
+        queue 1
+
+        arguments  = 226
+        queue 1
+
+        arguments  = 227
+        queue 1
+
+        arguments  = 228
+        queue 1
+
+        arguments  = 229
+        queue 1
+
+        arguments  = 230
+        queue 1
+
+        arguments  = 231
+        queue 1
+
+        arguments  = 232
+        queue 1
+
+        arguments  = 233
+        queue 1
+
+        arguments  = 234
+        queue 1
+
+        arguments  = 235
+        queue 1
+
+        arguments  = 236
+        queue 1
+
+        arguments  = 237
+        queue 1
+
+        arguments  = 238
+        queue 1
+
+        arguments  = 239
+        queue 1
+
+        arguments  = 240
+        queue 1
+
+        arguments  = 241
+        queue 1
+
+        arguments  = 242
+        queue 1
+
+        arguments  = 243
+        queue 1
+
+        arguments  = 244
+        queue 1
+
+        arguments  = 245
+        queue 1
+
+        arguments  = 246
+        queue 1
+
+        arguments  = 247
+        queue 1
+
+        arguments  = 248
+        queue 1
+
+        arguments  = 249
+        queue 1
+

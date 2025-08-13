@@ -60,6 +60,9 @@ logs/
 # Buffer and cache
 local_buffer/
 *_buffer/
+# But include important project buffers and configs
+!ros_jackal/buffer/
+!ros_jackal/configs/
 
 # Gazebo
 gazebo/

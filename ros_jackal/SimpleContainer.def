@@ -1,0 +1,30 @@
+Bootstrap: docker
+From: ros:noetic-robot-focal
+
+%setup
+    mkdir -p ${APPTAINER_ROOTFS}/jackal_ws/src
+    cd ${APPTAINER_ROOTFS}/jackal_ws/src
+    git clone https://github.com/yuanjielu-64/adaptive_dynamics_learning.git .
+
+%post -c /bin/bash
+    # 只安装最基础的工具
+    apt-get -y update && apt-get -y install \
+        python3-pip \
+        python3-venv \
+        python3-dev \
+        git \
+        wget \
+        curl \
+        build-essential \
+        vim \
+        nano \
+        htop \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+
+%environment
+    export LC_ALL=C
+
+%runscript
+    cd /jackal_ws
+    exec "$@"

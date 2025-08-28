@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 9337:
+Training Step: 10376
+Episode Reward: 121.381
+Episode Length: 29.696
+Success Rate: 96.857%

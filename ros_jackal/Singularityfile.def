@@ -5,16 +5,20 @@ From: ros:noetic
     mkdir -p ${APPTAINER_ROOTFS}/jackal_ws/src
 
 %post -c /bin/bash
-    # Clone the project repository
-
-    # Update packages and install dependencies
-    apt -y update; apt-get -y install \
+    # Update packages and install all dependencies
+    apt update && apt install -y \
         python3-pip \
         git \
         libprotobuf-dev \
         protobuf-compiler \
+        libprotobuf-lite17 \
+        libprotoc17 \
+        pkg-config \
+        cmake \
+        build-essential \
         gazebo11 \
         libgazebo11-dev \
+        gazebo11-plugin-base \
         ros-noetic-gazebo-ros \
         ros-noetic-gazebo-ros-pkgs \
         ros-noetic-gazebo-ros-control \
@@ -41,17 +45,30 @@ From: ros:noetic
         ros-noetic-jackal-navigation \
         ros-noetic-rosserial-python \
         ros-noetic-nmea-navsat-driver \
-        && apt-get clean
+        && apt clean
+
+    # Upgrade pip
     pip3 install --upgrade pip
-    
+
+    # Clone repository
     cd /jackal_ws/src
     git clone https://github.com/yuanjielu-64/adaptive_dynamics_learning.git .
 
-    # Upgrade pip and install Python dependencies
+    # Install Python dependencies
     cd /jackal_ws/src/ros_jackal
     pip3 install -r requirements.txt
-    pip3 install scipy gymnasium psutil
-    
-    # ROS setup
-    source /opt/ros/noetic/setup.bash
+    pip3 install scipy gymnasium psutil zipp
 
+    # Set up ROS workspace
+    cd /jackal_ws
+    source /opt/ros/noetic/setup.bash
+    catkin_make
+
+%environment
+    export ROS_WORKSPACE=/jackal_ws
+
+%runscript
+    source /opt/ros/noetic/setup.bash
+    source /jackal_ws/devel/setup.bash
+    cd /jackal_ws/src
+    exec "$@"

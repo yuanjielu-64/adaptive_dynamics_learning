@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 2082:
+Training Step: 3124
+Episode Reward: 112.137
+Episode Length: 28.238
+Success Rate: 93.793%

@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 2128:
+Training Step: 3165
+Episode Reward: 116.131
+Episode Length: 54.241
+Success Rate: 94.444%

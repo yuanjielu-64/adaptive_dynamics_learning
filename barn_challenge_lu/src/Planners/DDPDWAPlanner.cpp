@@ -11,6 +11,7 @@ namespace Antipatrea {
 
         parent = {0, 0, 0, robot->getPoseState().velocity_, robot->getPoseState().angular_velocity_, true};
         parent_odom = robot->getPoseState();
+        timeInterval = robot->timeInterval;
 
         std::pair<std::vector<PoseState>, bool> best_traj;
         best_traj.first.reserve(nr_steps_);
@@ -302,11 +303,11 @@ namespace Antipatrea {
         Timer::Clock d_t;
         Timer::Start(d_t);
 
-        double total_explore_time = 1.8;  // 1 second
-        timeInterval.clear();
-        timeInterval.reserve(nr_steps_);
-        weights.clear();
-        weights.reserve(nr_steps_);
+        // double total_explore_time = 1.8;  // 1 second
+        // timeInterval.clear();
+        // timeInterval.reserve(nr_steps_);
+        // weights.clear();
+        // weights.reserve(nr_steps_);
 
         // double p = 1.3;
         // double alpha = 2;
@@ -324,17 +325,21 @@ namespace Antipatrea {
         //     weights.push_back(weight);
         // }
 
-         timeInterval = {
-             0.0366, 0.0536, 0.0626, 0.0693, 0.0748, 0.0794, 0.0835, 0.0872,
-             0.0905, 0.0936, 0.0964, 0.0991, 0.1016, 0.1040, 0.1062, 0.1084,
-             0.1104, 0.1124, 0.1143, 0.1161
-         };
+         // timeInterval = {
+         //     0.0366, 0.0536, 0.0626, 0.0693, 0.0748, 0.0794, 0.0835, 0.0872,
+         //     0.0905, 0.0936, 0.0964, 0.0991, 0.1016, 0.1040, 0.1062, 0.1084,
+         //     0.1104, 0.1124, 0.1143, 0.1161
+         // };
 
-        weights = {
+        std::vector<double> full_weights = {
             0.7833, 0.6998, 0.6586, 0.6300, 0.6074, 0.5891, 0.5730, 0.5595,
             0.5468, 0.5358, 0.5259, 0.5165, 0.5079, 0.5001, 0.4926, 0.4856,
-            0.4789, 0.4727, 0.4667, 0.4612
+            0.4789, 0.4727, 0.4667, 0.4612, 0.4600, 0.4589, 0.4570, 0.4540
         };
+
+        weights.clear();
+        int size = (int) timeInterval.size();
+        weights.assign(full_weights.begin(), full_weights.begin() + size);
 
         Cost min_cost(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e6);
 
@@ -352,7 +357,7 @@ namespace Antipatrea {
 
         //Logger::m_out << "dw.max_angular_velocity_ " << dw.max_angular_velocity_ << "  dw.min_angular_velocity_ "  << dw.min_angular_velocity_ << std::endl;
 
-        num_threads = 18;
+        num_threads = (int) 8;
 
         std::vector<std::thread> threads;
         threads.reserve(num_threads);

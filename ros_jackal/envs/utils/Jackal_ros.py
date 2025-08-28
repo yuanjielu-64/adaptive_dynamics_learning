@@ -29,8 +29,8 @@ class JackalRos:
 
         self.start = False
 
-        self.local_goal = [0, 0]
-        self.global_goal = [0, 0]
+        self.local_goal = [0, 4]
+        self.global_goal = [0, 10]
         self.laser_data = None
         self.odometry_data = None
         self.cmd_vel_data = None
@@ -44,6 +44,8 @@ class JackalRos:
 
         self._setup_subscribers()
         self._setup_publisher()
+
+        self.last_action = np.full(20, 0.1)
 
         rospy.loginfo("JackalRos initialized - subscribing to ROS topics")
 
@@ -65,6 +67,7 @@ class JackalRos:
 
     def _setup_publisher(self):
         self._dynamics_pub = rospy.Publisher('/dy_dt', Float64MultiArray, queue_size=1)
+        self._params_pub = rospy.Publisher('/adp_params', Float64MultiArray, queue_size=1)
 
     def _collision_callback(self, msg):
 
@@ -105,7 +108,7 @@ class JackalRos:
         self.robot_state['angular_velocity'] = msg.twist.twist.angular.z
 
         if self.start == False:
-            if self.robot_state['velocity'] >= 0.2:
+            if self.robot_state['velocity'] >= 0.1:
                 self.start = True
                 self.start_time = rospy.get_time()
         else:
@@ -125,6 +128,22 @@ class JackalRos:
             global_x = msg.points[0].x
             global_y = msg.points[0].y
             self.global_goal = np.array([global_x, global_y])
+
+    def set_params(self, v):
+        msg = Float64MultiArray()
+
+        if v is None:
+            msg.data = []
+        else:
+            # 处理不同类型的 v
+            if hasattr(v, 'tolist'):  # numpy array
+                msg.data = v.tolist()
+            elif isinstance(v, (list, tuple)):  # 已经是列表或元组
+                msg.data = list(v)
+            else:  # 单个数值 (int, float)
+                msg.data = [float(v)]
+
+        self._params_pub.publish(msg)
 
     def set_dynamics_equation(self, action):
         msg = Float64MultiArray()
@@ -168,7 +187,7 @@ class JackalRos:
         """
         return [self.bad_vel, self.vel_counter]
 
-    def reset(self):
+    def reset(self, init_params):
         self.is_colliding = False
         self.collision_count = 0
         self.collision_start_time = None
@@ -177,3 +196,4 @@ class JackalRos:
         self.vel_counter = 0
         self.start = False
         self.start_time = 0
+        self.last_action = init_params

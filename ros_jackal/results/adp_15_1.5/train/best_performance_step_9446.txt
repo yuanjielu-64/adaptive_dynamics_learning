@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 9446:
+Training Step: 10473
+Episode Reward: 128.709
+Episode Length: 50.020
+Success Rate: 98.069%

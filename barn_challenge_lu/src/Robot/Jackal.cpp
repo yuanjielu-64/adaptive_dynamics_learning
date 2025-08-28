@@ -139,7 +139,7 @@ void Robot_config::costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
 void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
 
     // start to find local and global goal
-    if (global_goal_odom.empty() && timeInterval.empty()) {
+    if (global_goal_odom.empty() || timeInterval.empty()) {
         return;
     }
 
@@ -253,7 +253,7 @@ void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
         length += dist;
 
         if (getAlgorithm() == DWA || getAlgorithm() == DDPDWA) {
-            v = 1.5;
+            v = initial_v;
             thresholdSq = 2 * v + 1;
 
             if (length >= thresholdSq && flag == false) {
@@ -263,7 +263,7 @@ void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
                 break;
             }
         } else if (getAlgorithm() == LuPlanner || getAlgorithm() == DDPLuPlanner) {
-            v = 1.5;
+            v = initial_v;
             thresholdSq = 2 * v + 1;
 
             if (length >= thresholdSq && flag == false) {
@@ -274,7 +274,7 @@ void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
             }
         } else {
             if (getRobotState() == NORMAL_PLANNING) {
-                v = 1.5;
+                v = initial_v;
                 thresholdSq = 2 * v + 1;
                 if (length >= thresholdSq && flag == false) {
                     lg = transform_lg(xhat[i], yhat[i], robot_state.x_, robot_state.y_, robot_state.theta_);
@@ -283,7 +283,7 @@ void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
                     break;
                 }
             } else if (getRobotState() == LOW_SPEED_PLANNING) {
-                v = 1;
+                v = initial_v / 2;
 
                 thresholdSq = 2 * v + 0.25;
 
@@ -304,7 +304,7 @@ void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
                     break;
                 }
             }else {
-                v = 0.6;
+                v = initial_v / 2;
                 thresholdSq = v;
                 if (length >= thresholdSq && flag == false) {
                     lg = transform_lg(xhat[i], yhat[i], robot_state.x_, robot_state.y_, robot_state.theta_);
@@ -358,79 +358,30 @@ void Robot_config::globalPathCallback(const nav_msgs::Path::ConstPtr &msg) {
 }
 
 void Robot_config::update_angular_velocity() {
-    double angular_vel = abs(getPoseState().angular_velocity_);
-    double linear_vel = abs(getPoseState().velocity_);
-
-    if (getAlgorithm() == DWA || getAlgorithm() == DDPDWA || getAlgorithm() == LuPlanner || getAlgorithm() == DDPLuPlanner) {
+    if (getAlgorithm() == DWA || getAlgorithm() == DDPLuPlanner) {
         if (getRobotState() == NORMAL_PLANNING)
             w = 2;
         else if (getRobotState() == LOW_SPEED_PLANNING)
             w = 1;
     } else {
         if (getRobotState() == NORMAL_PLANNING) {
-            if (angular_vel <= 1.5) {
-                if (linear_vel <= v / 3) {
-                    w = 3;
-                } else if (linear_vel <= 2 * v / 3) {
-                    w = 2.5;
-                } else {
-                    w = 2.0;
-                }
-            } else if (angular_vel <= 2.0) {
-                if (linear_vel <= v / 3) {
-                    w = 2.5;
-                } else if (linear_vel <= 2 * v/3) {
-                    w = 2.0;
-                } else {
-                    w = 1.5;
-                }
-            } else {
-                if (linear_vel <= v / 3) {
-                    w = 2.0;
-                } else if (linear_vel <= 2 * v / 3) {
-                    w = 1.5;
-                } else {
-                    w = 1.0;
-                }
-            }
-        } else if (getRobotState() == LOW_SPEED_PLANNING) {
-            if (angular_vel <= 1.0) {
-                if (linear_vel <= v / 3) {
-                    w = 2.0;
-                } else if (linear_vel <= 2 * v/3) {
-                    w = 1.5;
-                } else {
-                    w = 1.0;
-                }
-            } else if (angular_vel <= 2.0) {
-                if (linear_vel <= v/3) {
-                    w = 2.0;
-                } else if (linear_vel <= 2*v/3) {
-                    w = 1.5;
-                } else {
-                    w = 1.0;
-                }
-            } else {
-                if (linear_vel <= v/3) {
-                    w = 1.75;
-                } else if (linear_vel <= 2*v/3) {
-                    w = 1.25;
-                } else {
-                    w = 0.75;
-                }
-            }
-        } else{
-            if (angular_vel <= 0.5) {
+            if (abs(getPoseState().angular_velocity_) <= 1 && abs(getPoseState().velocity_) <=  1 * v / 3)
+                w = 2;
+            else if ((abs(getPoseState().angular_velocity_) <= 2 && abs(getPoseState().angular_velocity_) > 1 * v / 3) || (
+                         abs(getPoseState().velocity_) > 1 && abs(getPoseState().velocity_) <= 2 * v / 3))
+                w = 1.5;
+            else
                 w = 1.0;
-            } else if (angular_vel <= 1.0) {
-                w = 0.75;
-            } else {
-                w = 0.5;
-            }
+        } else if (getRobotState() == LOW_SPEED_PLANNING) {
+            if (abs(getPoseState().angular_velocity_) <= 1 && abs(getPoseState().velocity_) <= 1 * v / 3)
+                w = 2.5;
+            else if ((abs(getPoseState().angular_velocity_) <= 2 && abs(getPoseState().angular_velocity_) > 1 * v / 3) || (
+                         abs(getPoseState().velocity_) > 0.2 && abs(getPoseState().velocity_) <= 2 * v / 3))
+                w = 2;
+            else
+                w = 1.5;
         }
     }
-
-    w = std::min(std::max(w, 0.5), 3.5);
 }
 
 bool Robot_config::isPaused() const {
@@ -478,6 +429,19 @@ void Robot_config::arrayCallback(const std_msgs::Float64MultiArray::ConstPtr& ms
     std::vector<double> received_array = msg->data;
 
     timeInterval = received_array;
+}
+
+void Robot_config::paramsCallback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+
+    if (msg->data.empty()) {
+        ROS_WARN("Received empty dynamics data");
+        return;
+    }
+
+    initial_v = msg->data[0];
+
+    param_received = true;
+
 }
 
 void Robot_config::goalCallback(const move_base_msgs::MoveBaseActionGoal::ConstPtr &msg) {
@@ -556,10 +520,8 @@ void Robot_config::velocityCallback(const nav_msgs::Odometry::ConstPtr &msg) {
         low_to_normal_active = false;
         low_to_brake_active = false;
 
-
-
-        if (re >= 10)
-            re = 9;
+        if (re >= 5)
+            re = 4;
     }
 }
 
@@ -703,6 +665,7 @@ Robot_config::Robot_config()
       currentMap(ONLY_LASER_RECEIVED),
       getGoal(false),
       can_move(false),
+      param_received(false),
       canBeSolved(true),
       rotating_angle(0.0),
       los(2),
@@ -732,6 +695,7 @@ Robot_config::Robot_config()
                                                    this);
 
     array_dt_sub = nh.subscribe("/dy_dt", 1, &Robot_config::arrayCallback, this);
+    params_sub = nh.subscribe("/adp_params", 1, &Robot_config::paramsCallback, this);
 
     trajectory_pub = nh.advertise<nav_msgs::Path>("trajectory", 10);
     global_path_pub = nh.advertise<nav_msgs::Path>("global_path", 10);
@@ -792,6 +756,7 @@ void Robot_config::view_Goal(std::vector<double> &goal, std::vector<double> &goa
 
 void Robot_config::viewTrajectories(std::vector<PoseState> &trajectories, int nr_steps_, double theta_,
                                     std::vector<double> &t) const {
+
     nav_msgs::Path path;
     path.header.stamp = ros::Time::now();
     path.header.frame_id = "odom";

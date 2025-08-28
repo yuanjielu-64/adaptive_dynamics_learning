@@ -65,7 +65,7 @@ void logVelocityData(Robot_config& robot) {
     bool is_paused = robot.isPaused();
     int robot_state = robot.getRobotState();
 
-    // 写入数据: 时间戳, x, y, theta, 线速度, 角速度, 暂停状态, 机器人状态
+
     velocity_log_file << std::fixed << std::setprecision(6)
                      << current_time.toSec() << ", "
                      << pose.x_ << ", "
@@ -76,7 +76,7 @@ void logVelocityData(Robot_config& robot) {
                      << (is_paused ? 1 : 0) << ", "
                      << robot_state << std::endl;
 
-    // 每10次记录后刷新一次文件
+
     static int log_counter = 0;
     if (++log_counter % 10 == 0) {
         velocity_log_file.flush();
@@ -100,7 +100,7 @@ extern "C" int RunMP(int argc, char **argv) {
 
     ros::Rate rate(n);
 
-    initializeVelocityLog();
+    //initializeVelocityLog();
 
     setup.SetupFromParams(params, robot);
     int state = Robot_config::NORMAL_PLANNING;
@@ -116,8 +116,9 @@ extern "C" int RunMP(int argc, char **argv) {
                 rate.sleep();
             continue;
         }
-
-        logVelocityData(robot);
+        
+        
+        //logVelocityData(robot);
 
         setup.UpdateFromParams(params, robot, state);
 

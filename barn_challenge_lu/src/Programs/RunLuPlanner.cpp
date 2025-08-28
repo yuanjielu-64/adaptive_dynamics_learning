@@ -24,25 +24,6 @@ extern "C" int RunDDP(int argc, char **argv) {
     params.ReadFromFile(argv[1]);
     params.ProcessArgs(2, argc - 1, argv);
 
-    std::string package_path = ros::package::getPath("barn_challenge_lu");
-    if (package_path.empty()) {
-        std::cerr << "Error: Package 'barn_challenge_lu' not found." << std::endl;
-        return -1;
-    }
-
-    // 设置工作目录
-    if (chdir(package_path.c_str()) != 0) {
-        std::cerr << "Failed to set working directory to " << package_path << std::endl;
-        return -1;
-    }
-
-    char cwd[1024];
-    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
-        std::cout << "Current working directory: " << cwd << std::endl;
-    } else {
-        std::cerr << "Failed to get current working directory" << std::endl;
-    }
-
     Robot_config robot;
     robot.setAlgorithm(Robot_config::LuPlanner);
 
@@ -58,7 +39,6 @@ extern "C" int RunDDP(int argc, char **argv) {
         Timer::Clock start_time;
         Timer::Start(start_time);
 
-        robot.getCostMap()->updateMap();
         ros::spinOnce();
 
         if (!robot.setup()) {
@@ -69,12 +49,12 @@ extern "C" int RunDDP(int argc, char **argv) {
 
         setup.UpdateFromParams(params, robot, state);
 
-        const auto &pose = robot.getPoseState();
-        Logger::m_out << "  x " << pose.x_
-                      << "  y " << pose.y_
-                      << "  theta " << pose.theta_
-                      << "  v " << pose.velocity_
-                      << "  w " << pose.angular_velocity_ << std::endl;
+        // const auto &pose = robot.getPoseState();
+        // Logger::m_out << "  x " << pose.x_
+        //               << "  y " << pose.y_
+        //               << "  theta " << pose.theta_
+        //               << "  v " << pose.velocity_
+        //               << "  w " << pose.angular_velocity_ << std::endl;
 
         // Logger::m_out << "Loading nodes took: " << Timer::Elapsed(start_time) << " seconds" << std::endl;
 
@@ -92,12 +72,12 @@ extern "C" int RunDDP(int argc, char **argv) {
 
         setup.GetMP()->Solve(1, 0.05, robot.canBeSolved);
 
-        auto state_it = state_descriptions.find(robot.getRobotState());
-        if (state_it != state_descriptions.end()) {
-            Logger::m_out << "Robot STATE: " << state_it->second << std::endl;
-        } else {
-            Logger::m_out << "Robot STATE: unknown" << std::endl;
-        }
+        // auto state_it = state_descriptions.find(robot.getRobotState());
+        // if (state_it != state_descriptions.end()) {
+        //     Logger::m_out << "Robot STATE: " << state_it->second << std::endl;
+        // } else {
+        //     Logger::m_out << "Robot STATE: unknown" << std::endl;
+        // }
 
         // Logger::m_out << "Task execution cost: " << Timer::Elapsed(start_time) << " seconds" << std::endl;
         // Logger::m_out << std::endl;

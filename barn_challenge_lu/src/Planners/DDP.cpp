@@ -39,6 +39,7 @@ namespace Antipatrea {
 
         normalParameters(*robot);
 
+
         const double angle_to_goal = calculateTheta(parent, &robot->getGlobalGoalCfg()[0]);
 
         double angular = std::clamp(angle_to_goal, -1.0, 1.0);
@@ -88,16 +89,15 @@ namespace Antipatrea {
 
     bool DDP::handleAbnormalPlaning(geometry_msgs::Twist &cmd_vel,
                                     std::pair<std::vector<PoseState>, bool> &best_traj, double dt) {
-
         if (robot->getRobotState() == Robot_config::BRAKE_PLANNING) {
             double vel = robot->getPoseState().velocity_;
 
             if (vel >= 0.5)
-                publishCommand(cmd_vel, -0.25, 0.0);
+                publishCommand(cmd_vel, -0.5, 0.0);
             else if (vel >= 0.1 && vel <= 0.5)
-                publishCommand(cmd_vel, -0.1, 0.0);
+                publishCommand(cmd_vel, -0.2, 0.0);
             else {
-                publishCommand(cmd_vel, -0.05, 0.0);
+                publishCommand(cmd_vel, -0.1, 0.0);
                 robot->setRobotState(Robot_config::RECOVERY);
             }
 
@@ -105,10 +105,8 @@ namespace Antipatrea {
         }
 
         if (robot->getRobotState() == Robot_config::RECOVERY) {
-
             if (robot->front_obs <= 0.1) {
                 robot->setRobotState(Robot_config::BACKWARD);
-                robot->re += 1;
                 return true;
             }
 
@@ -124,28 +122,17 @@ namespace Antipatrea {
             if (result) {
                 publishCommand(cmd_vel, best_traj.first[3].velocity_, best_traj.first[3].angular_velocity_);
 
-                robot->recover_times++;
+                robot->recover_times ++;
 
-                if (robot->recover_times >= robot->re * 10) {
+                if (robot->recover_times >= robot->re * 5) {
                     robot->setRobotState(Robot_config::LOW_SPEED_PLANNING);
                     robot->re += 1;
-                    robot->recover_times = 0;
                 }
 
                 return true;
             }
 
-            if (RandomUniformReal(0, 1) < 0.33)
-                publishCommand(cmd_vel, 0.05, 0);
-            else if (RandomUniformReal(0, 1) < 0.66 && RandomUniformReal(0, 1) >= 0.33)
-                publishCommand(cmd_vel, 0, 0.02);
-            else
-                publishCommand(cmd_vel, 0, -0.02);
-
-            return true;
-        }
-
-        if (robot->getRobotState() == Robot_config::ROTATE_PLANNING) {
+            robot->recover_times = 0;
             std::vector<std::vector<double> > local_paths = robot->local_paths_odom;
 
             double sum_angle = 0.0;
@@ -157,29 +144,25 @@ namespace Antipatrea {
                 double angle = atan2(dy, dx);
                 sum_angle += angle;
                 count++;
-
-                if (count >= 4)
-                    break;
             }
 
-            if (count == 0) {
-                publishCommand(cmd_vel, 0.05, 0);
-                return true;
-            } else {
-                double rotate_angle = sum_angle / (count + 0.001) - parent_odom.theta_;
-                rotate_angle = normalizeAngle(rotate_angle);
+            double rotate_angle = sum_angle / count - parent_odom.theta_;
+            rotate_angle = normalizeAngle(rotate_angle);
 
-                if (fabs(rotate_angle) <= 0.3) {
-                    robot->setRobotState(Robot_config::RECOVERY);
-                    return true;
-                }
-
-                double z = rotate_angle > 0 ? std::min(rotate_angle, 1.0) : std::max(rotate_angle, -1.0);
-                z = z > 0 ? std::max(z, 0.2) : std::min(z, -0.2);
-                publishCommand(cmd_vel, 0.0, z);
-
+            if (fabs(rotate_angle) <= 0.2) {
+                robot->setRobotState(Robot_config::LOW_SPEED_PLANNING);
                 return true;
             }
+
+            double z = rotate_angle > 0 ? std::min(rotate_angle, 1.0) : std::max(rotate_angle, -1.0);
+            z = z > 0 ? std::max(z, 0.5) : std::min(z, -0.5);
+            publishCommand(cmd_vel, 0.0, z);
+
+            return true;
+        }
+
+        if (robot->getRobotState() == Robot_config::ROTATE_PLANNING) {
+            return true;
         }
 
         if (robot->getRobotState() == Robot_config::BACKWARD) {
@@ -188,8 +171,8 @@ namespace Antipatrea {
 
             frontBackParameters(*robot);
 
-            if (robot->front_obs >= 0.15) {
-                robot->setRobotState(Robot_config::ROTATE_PLANNING);
+            if (robot->front_obs >= 0.1) {
+                robot->setRobotState(Robot_config::RECOVERY);
                 return true;
             }
 
@@ -210,7 +193,8 @@ namespace Antipatrea {
         Timer::Clock d_t;
         Timer::Start(d_t);
 
-        double total_explore_time = 2;
+        // double total_explore_time = 2;
+
         // timeInterval.clear();
 
         //  double p = 1.7;
@@ -247,7 +231,6 @@ namespace Antipatrea {
         num_threads = (int) 8;
         // Logger::m_out << "num_threads " << num_threads << std::endl;
 
-
         std::vector<std::vector<Cost> > thread_costs(num_threads);
         std::vector<std::vector<std::pair<std::vector<PoseState>, std::vector<PoseState> > > > thread_trajectories(
                 num_threads);
@@ -262,56 +245,130 @@ namespace Antipatrea {
         double angular_velocity;
 
         if (robot->getRobotState() == Robot_config::LOW_SPEED_PLANNING) {
-            for (int i = 0; i < nr_pairs_ - 50; ++i) {
-                if (RandomUniformReal(0, 1) < 0.05 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
+            int num_samples = nr_pairs_ - 25;
+            int v_steps = static_cast<int>(std::sqrt(num_samples));
+            int w_steps = (num_samples + v_steps - 1) / v_steps;
+            double v_step = (dw.max_velocity_ - dw.min_velocity_) / std::max(1, v_steps - 1);
+            double w_step = (dw.max_angular_velocity_ - dw.min_angular_velocity_) / std::max(1, w_steps - 1);
+            for (int i = 0; i < nr_pairs_ - 25; ++i) {
+                if (i % 20 == 0 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
                     linear_velocity = delta_v_sum;
                     angular_velocity = delta_w_sum;
                 } else {
-                    linear_velocity = RandomUniformReal(dw.min_velocity_, dw.max_velocity_);
-                    angular_velocity = RandomUniformReal(dw.min_angular_velocity_, dw.max_angular_velocity_);
+                    int v_idx = i % v_steps;
+                    int w_idx = (i / v_steps) % w_steps;
+                    linear_velocity = dw.min_velocity_ + v_idx * v_step;
+                    angular_velocity = dw.min_angular_velocity_ + w_idx * w_step;
                 }
                 pairs.emplace_back(linear_velocity, angular_velocity);
             }
 
-            for (int i = 0; i < 50; ++i) {
+            for (int i = 0; i < 25; ++i) {
                 pairs.emplace_back(0.2, 0.0);
             }
+
+            // for (int i = 0; i < nr_pairs_ - 50; ++i) {
+            //     if (RandomUniformReal(0, 1) < 0.05 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
+            //         linear_velocity = delta_v_sum;
+            //         angular_velocity = delta_w_sum;
+            //     } else {
+            //         linear_velocity = RandomUniformReal(dw.min_velocity_, dw.max_velocity_);
+            //         angular_velocity = RandomUniformReal(dw.min_angular_velocity_, dw.max_angular_velocity_);
+            //     }
+            //     pairs.emplace_back(linear_velocity, angular_velocity);
+            // }
+            //
+            // for (int i = 0; i < 50; ++i) {
+            //     pairs.emplace_back(0.2, 0.0);
+            // }
+
         } else if (robot->getRobotState() == Robot_config::RECOVERY) {
-            for (int i = 0; i < nr_pairs_ - 200; ++i) {
-                if (RandomUniformReal(0, 1) < 0.05 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
+            int num_samples = nr_pairs_ - 75;
+            int v_steps = static_cast<int>(std::sqrt(num_samples));
+            int w_steps = (num_samples + v_steps - 1) / v_steps;
+            double v_step = (dw.max_velocity_ - dw.min_velocity_) / std::max(1, v_steps - 1);
+            double w_step = (dw.max_angular_velocity_ - dw.min_angular_velocity_) / std::max(1, w_steps - 1);
+            for (int i = 0; i < nr_pairs_ - 75; ++i) {
+                if (i % 20 == 0 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
                     linear_velocity = delta_v_sum;
                     angular_velocity = delta_w_sum;
-                } else {
-                    linear_velocity = RandomUniformReal(dw.min_velocity_, dw.max_velocity_);
-                    angular_velocity = RandomUniformReal(dw.min_angular_velocity_, dw.max_angular_velocity_);
+                }else {
+                    int v_idx = i % v_steps;
+                    int w_idx = (i / v_steps) % w_steps;
+                    linear_velocity = dw.min_velocity_ + v_idx * v_step;
+                    angular_velocity = dw.min_angular_velocity_ + w_idx * w_step;
                 }
+
                 pairs.emplace_back(linear_velocity, angular_velocity);
+
             }
 
-            for (int i = 0; i < 100; ++i) {
+            for (int i = 0; i < 25; ++i) {
                 pairs.emplace_back(0.05, 0.0);
             }
 
-            for (int i = 0; i < 50; ++i) {
+            for (int i = 0; i < 25; ++i) {
                 pairs.emplace_back(0.02, -0.5);
             }
 
-            for (int i = 0; i < 50; ++i) {
+            for (int i = 0; i < 25; ++i) {
                 pairs.emplace_back(0.02, 0.5);
             }
+
+            // for (int i = 0; i < nr_pairs_ - 200; ++i) {
+            //     if (RandomUniformReal(0, 1) < 0.05 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
+            //         linear_velocity = delta_v_sum;
+            //         angular_velocity = delta_w_sum;
+            //     } else {
+            //         linear_velocity = RandomUniformReal(dw.min_velocity_, dw.max_velocity_);
+            //         angular_velocity = RandomUniformReal(dw.min_angular_velocity_, dw.max_angular_velocity_);
+            //     }
+            //     pairs.emplace_back(linear_velocity, angular_velocity);
+            // }
+            //
+            // for (int i = 0; i < 100; ++i) {
+            //     pairs.emplace_back(0.05, 0.0);
+            // }
+            //
+            // for (int i = 0; i < 50; ++i) {
+            //     pairs.emplace_back(0.02, -0.5);
+            // }
+            //
+            // for (int i = 0; i < 50; ++i) {
+            //     pairs.emplace_back(0.02, 0.5);
+            // }
+
         } else {
+            int v_steps = static_cast<int>(std::sqrt(nr_pairs_));
+            int w_steps = (nr_pairs_ + v_steps - 1) / v_steps;
+            double v_step = (dw.max_velocity_ - dw.min_velocity_) / std::max(1, v_steps - 1);
+            double w_step = (dw.max_angular_velocity_ - dw.min_angular_velocity_) / std::max(1, w_steps - 1);
             for (int i = 0; i < nr_pairs_; ++i) {
-                if (RandomUniformReal(0, 1) < 0.05 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
+                if (i % 20 == 0 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
                     linear_velocity = delta_v_sum;
                     angular_velocity = delta_w_sum;
-                } else {
-                    linear_velocity = RandomUniformReal(dw.min_velocity_, dw.max_velocity_);
-                    angular_velocity = RandomUniformReal(dw.min_angular_velocity_, dw.max_angular_velocity_);
+                }else {
+                    int v_idx = i % v_steps;
+                    int w_idx = (i / v_steps) % w_steps;
+                    linear_velocity = dw.min_velocity_ + v_idx * v_step;
+                    angular_velocity = dw.min_angular_velocity_ + w_idx * w_step;
                 }
-                pairs.emplace_back(linear_velocity, angular_velocity);
-            }
-        }
 
+                pairs.emplace_back(linear_velocity, angular_velocity);
+
+            }
+            // for (int i = 0; i < nr_pairs_; ++i) {
+            //     if (RandomUniformReal(0, 1) < 0.05 && delta_v_sum != FLT_MIN && delta_w_sum != FLT_MAX) {
+            //         linear_velocity = delta_v_sum;
+            //         angular_velocity = delta_w_sum;
+            //     } else {
+            //         linear_velocity = RandomUniformReal(dw.min_velocity_, dw.max_velocity_);
+            //         angular_velocity = RandomUniformReal(dw.min_angular_velocity_, dw.max_angular_velocity_);
+            //     }
+            //     pairs.emplace_back(linear_velocity, angular_velocity);
+            // }
+        }
+        
         std::vector<std::thread> threads;
         threads.reserve(num_threads);
 
@@ -330,7 +387,7 @@ namespace Antipatrea {
                                               thread_costs[i], thread_trajectories[i], thread_pairs[i]);
                     });
         }
-
+        
         for (auto &thread: threads) {
             thread.join();
         }

@@ -13,15 +13,14 @@ class JackalLaser(JackalBase):
         self.laser_clip = laser_clip
 
         # laser scan + goal + linear and angular velocity
-
-        obs_dim = 720 + 7  # 720 dim laser scan + local goal (in angle)
+        last_action_dim = len(self.param_list)
+        obs_dim = 720 + last_action_dim + 2 + 2 + 2  # 720 dim laser scan + local goal (in angle)
         self.observation_space = Box(
             low=0,
             high=laser_clip,
             shape=(obs_dim,),
             dtype=np.float32
         )
-
 
     def _get_observation(self):
         # observation is the 720 dim laser scan + one local goal in angle
@@ -30,10 +29,15 @@ class JackalLaser(JackalBase):
 
         robot_state = self.jackal_ros.get_robot_state()
         local_goal = self._get_local_goal()
+        global_goal = self._get_global_goal()
 
         gd_go = self.calculate_goal_direction_and_distance(robot_state, local_goal)
 
-        obs = np.concatenate([laser_scan, robot_state, gd_go])
+        gd_go1 = self.calculate_goal_direction_and_distance(robot_state, global_goal)
+
+        last_action = self.jackal_ros.last_action
+
+        obs = np.concatenate([laser_scan, last_action , robot_state[3:], gd_go, gd_go1])
 
         return obs
 
@@ -70,8 +74,7 @@ class JackalLaser(JackalBase):
         return lg
 
     def calculate_goal_direction_and_distance(self, robot_status, local_goal):
-
-        robot_x, robot_y = robot_status[0], robot_status[1]
+        robot_x, robot_y, robot_yaw = robot_status[0], robot_status[1], robot_status[2]  # 需要机器人朝向
         goal_x, goal_y = local_goal[0], local_goal[1]
 
         dx = goal_x - robot_x
@@ -79,6 +82,10 @@ class JackalLaser(JackalBase):
 
         distance = math.sqrt(dx ** 2 + dy ** 2)
 
-        direction = math.atan2(dy, dx)
+        goal_angle_world = math.atan2(dy, dx)
 
-        return direction, distance
+        relative_direction = goal_angle_world - robot_yaw
+
+        relative_direction = math.atan2(math.sin(relative_direction), math.cos(relative_direction))
+
+        return relative_direction, distance

@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 17831:
+Training Step: 18872
+Episode Reward: 130.541
+Episode Length: 52.714
+Success Rate: 98.667%

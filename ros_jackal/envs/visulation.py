@@ -8,5 +8,3 @@ from envs import JackalBase
 class Visualization(JackalBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        a = 10

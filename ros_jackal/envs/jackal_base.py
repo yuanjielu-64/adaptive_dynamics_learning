@@ -19,7 +19,10 @@ class JackalBase(gym.Env):
     def __init__(
             self,
             world_name="jackal_world.world",
+            planner='ddp',
+            max_velocity = 1.5,
             gui=False,
+            rviz_gui=False,
             init_position=None,
             goal_position=None,
             max_step=100,
@@ -37,12 +40,16 @@ class JackalBase(gym.Env):
         super().__init__()
         # config
         if init_position is None:
-            init_position = [-2, 3, 0]
+            init_position = [-2.25, 3, 1.57]
         if goal_position is None:
-            goal_position = [10, 0, 0]
+            goal_position = [0, 15, 0]
 
         self.gui = gui
+        self.rviz_gui = rviz_gui
         self.verbose = verbose
+
+        self.planner = planner
+        self.max_velocity = max_velocity
 
         # sim config
         self.world_name = world_name
@@ -73,6 +80,8 @@ class JackalBase(gym.Env):
         self.collided = 0
         self.start_time = self.current_time = None
 
+
+
     def launch_move_base(self, goal_position, base_local_planner):
         rospack = rospkg.RosPack()
         self.BASE_PATH = rospack.get_path('jackal_helper')
@@ -91,11 +100,29 @@ class JackalBase(gym.Env):
         rospack = rospkg.RosPack()
         self.BASE_PATH = rospack.get_path('jackal_helper')
         world_name = join(self.BASE_PATH, "worlds/BARN/", world_name)
-        launch_file = join(self.BASE_PATH, 'launch', 'gazebo_launch.launch')
+
+        if self.rviz_gui == False:
+            launch_file = join(self.BASE_PATH, 'launch', 'gazebo_launch.launch')
+        else:
+            launch_file = join(self.BASE_PATH, 'launch', 'gazebo_launch_rviz.launch')
+
+        if self.planner == 'ddp':
+            p1 = "RunMP"
+            p2 = "DDP"
+        elif self.planner == 'dwa':
+            p1 = "RunDWA"
+            p2 = "DDPDWAPlanner"
+        elif self.planner == 'mppi':
+            p1 = "RunMP"
+            p2 = "DDPMPPIPlanner"
+        else:
+            raise FileNotFoundError
 
         self.gazebo_process = subprocess.Popen(['roslaunch',
                                                 launch_file,
                                                 'world_name:=' + world_name,
+                                                'ddp_param1:=' + p1,
+                                                'ddp_param2:=' + p2,
                                                 'gui:=' + ("true" if gui else "false"),
                                                 'verbose:=' + ("true" if verbose else "false"),
                                                 ])
@@ -136,17 +163,17 @@ class JackalBase(gym.Env):
         self.step_count = 0
 
         self.gazebo_sim.reset()
-        self.jackal_ros.reset()
-        self.start_time = self.current_time = self.jackal_ros.start_time
+        self.jackal_ros.reset(self.param_init)
 
         # -----------------------
         self.gazebo_sim.unpause()
         self._reset_move_base()
+        self.jackal_ros.set_params(self.max_velocity)
         self.jackal_ros.set_dynamics_equation([])
-        obs = self._get_observation()
         self.gazebo_sim.pause()
         # -----------------------
 
+        obs = self._get_observation()
         self._reset_reward()
 
         return obs
@@ -160,9 +187,9 @@ class JackalBase(gym.Env):
 
         obs = self._get_observation()
         pos = self._get_robot_state()
-        rew = self._get_reward()
-        done = self._get_done()
-        info = self._get_info()
+        rew = self._get_reward(action)
+        done, status = self._get_done()
+        info = self._get_info(status)
 
         self.traj_pos.append((pos[0], pos[1]))
 
@@ -172,15 +199,63 @@ class JackalBase(gym.Env):
         self.traj_pos = []
         self.collision_count = 0
         self.smoothness = 0
-        
-        # Initialize distance tracking for distance progress reward
+
+        # self.Y = self.jackal_ros.get_robot_state()[1]
         robot_pos = self.jackal_ros.get_robot_state()
         self.last_distance = self._compute_distance(
             [robot_pos[0], robot_pos[1]],
             self.global_goal
         )
 
-    def _get_reward(self):
+    # def _get_reward(self, new_pos, action):
+
+        # if self.jackal_ros.get_collision():
+        #     return self.failure_reward
+        # elif self.step_count >= self.max_step:
+        #     return self.failure_reward
+        # elif self._get_success():
+        #     return self.success_reward
+        # else:
+        #     rewards = self.slack_reward
+        #
+        # Y = new_pos[1]
+        #
+        # distance_progress = Y - self.Y
+        #
+        # rewards += distance_progress * 10
+        #
+        # self.Y = new_pos[1]
+
+        # last_pos = self.last_robot_pos
+        # last_local_goal = np.array(self.last_local_goal)
+        #
+        # last_distance = self._compute_distance(
+        #     [last_pos[0], last_pos[1]],
+        #     last_local_goal
+        # )
+        #
+        # current_distance = self._compute_distance(
+        #     [new_pos[0], new_pos[1]],
+        #     last_local_goal
+        # )
+        #
+        # distance_progress = last_distance - current_distance
+        # rewards += distance_progress * 20
+
+        # total_sum = np.sum(action)
+        #
+        # if total_sum > 2.0:
+        #     rewards += (total_sum - 2.0) * -15
+        #
+        # if total_sum < 1.0:
+        #     rewards += (2.0 - total_sum) * -15
+        #
+        # self.last_robot_pos = new_pos
+        # self.last_local_goal = self.jackal_ros.get_local_goal()
+        #
+        # return rewards
+
+    def _get_reward(self, action):
 
         if self.jackal_ros.get_collision():
             return self.failure_reward
@@ -188,16 +263,18 @@ class JackalBase(gym.Env):
             return self.failure_reward
 
         if self._get_success():
-            time_efficiency = (self.max_step - self.step_count) / self.max_step
-            rewards = self.success_reward + time_efficiency * 50
+            # time_efficiency = (self.max_step - self.step_count) / self.max_step
+            # rewards = self.success_reward + time_efficiency * 50
+            return self.success_reward
         else:
             rewards = self.slack_reward
 
         # obstacles
         laser_scan = np.array(self.jackal_ros.laser_data.ranges)
         d = np.mean(sorted(laser_scan)[:10])
-        if d < 0.15:
-            rewards  += self.obstacle_reward / (d + 0.1)
+        if d < 0.05:
+            penalty_ratio = (1 - d / 0.05) ** 2
+            rewards += self.obstacle_reward * penalty_ratio
 
         # distance progress reward
         robot_pos = self.jackal_ros.get_robot_state()
@@ -207,8 +284,12 @@ class JackalBase(gym.Env):
         )
 
         distance_progress = self.last_distance - current_distance
-        rewards += distance_progress * 25
+        rewards += distance_progress * 10
         self.last_distance = current_distance
+
+        # reward for speed
+        # velocity = self.jackal_ros.get_robot_state()[3]
+        # rewards += 0.5 * velocity
 
         smoothness = self._compute_angle(len(self.traj_pos) - 1)
         self.smoothness += smoothness
@@ -217,34 +298,49 @@ class JackalBase(gym.Env):
 
     def _get_done(self):
         success = self._get_success()
-        done = success or self.step_count >= self.max_step or self._get_flip_status()
-        return done
+        flip = self._get_flip_status()
+        timeout = self.step_count >= self.max_step
 
+        if success:
+            return True, "success"
+        elif flip:
+            return True, "flip"
+        elif timeout:
+            return True, "timeout"
+        else:
+            return False, "running"
 
     def _get_success(self):
         robot_position = [self.jackal_ros.get_robot_state()[0], self.jackal_ros.get_robot_state()[1]]
         if robot_position[1] > self.global_goal[1]:
             return True
-        if self._compute_distance(robot_position, self.global_goal) <= 2:
+
+        if self.global_goal[1] == 10:
+            d = 1
+        else:
+            d = 4
+
+        if self._compute_distance(robot_position, self.global_goal) <= d:
             return True
+
         return False
 
-
-    def _get_info(self):
+    def _get_info(self, status):
         bn, nn = self.jackal_ros.get_bad_vel()
+
         self.collision_count += self.jackal_ros.get_collision()
+
         return dict(
             world=self.world_name,
             time=rospy.get_time() - self.jackal_ros.start_time,
             collision=self.collision_count,
+            status=status,
             recovery=1.0 * (bn + 0.0001) / (nn + 0.0001),
             smoothness=self.smoothness
         )
 
-
     def _compute_distance(self, p1, p2):
         return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
-
 
     def _compute_angle(self, idx):
         def dis(x1, y1, x2, y2):
@@ -260,29 +356,27 @@ class JackalBase(gym.Env):
             a = 0
         return a
 
-
     def _get_flip_status(self):
         robot_position = self.jackal_ros.robot_state['z']
-        return robot_position > 0.1
 
+        if robot_position > 0.1 or self.jackal_ros.is_colliding:
+            return True
+        else:
+            return False
 
     def _take_action(self, action):
         raise NotImplementedError()
 
-
     def _get_observation(self):
         raise NotImplementedError()
 
-
     def _get_robot_state(self):
         raise NotImplementedError()
-
 
     def _reset_move_base(self):
         self.move_base.reset_robot_in_odom()
         self._clear_costmap()
         self.move_base.set_global_goal()
-
 
     def _clear_costmap(self):
         self.move_base.clear_costmap()
@@ -291,14 +385,12 @@ class JackalBase(gym.Env):
         rospy.sleep(0.1)
         self.move_base.clear_costmap()
 
-
     def close(self):
         # These will make sure all the ros processes being killed
         os.system("killall -9 rosmaster")
         os.system("killall -9 gzclient")
         os.system("killall -9 gzserver")
         os.system("killall -9 roscore")
-
 
     def _get_pos_psi(self):
         pose = self.gazebo_sim.get_model_state().pose
@@ -312,7 +404,6 @@ class JackalBase(gym.Env):
         assert -np.pi <= psi <= np.pi, psi
 
         return pos, psi
-
 
     def _path_coord_to_gazebo_coord(self, x, y):
         RADIUS = 0.075

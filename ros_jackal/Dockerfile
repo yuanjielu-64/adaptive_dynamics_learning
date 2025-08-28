@@ -52,7 +52,7 @@ RUN pip3 install scipy gymnasium psutil
 
 # Set up ROS workspace
 WORKDIR /jackal_ws
-RUN /bin/bash -c "source /opt/ros/noetic/setup.bash"
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash; catkin_make"
 
 # Set environment
 ENV ROS_WORKSPACE=/jackal_ws

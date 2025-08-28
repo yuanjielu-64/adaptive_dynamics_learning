@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class Actor(nn.Module):
     def __init__(self, state_preprocess, head, action_dim):
         super(Actor, self).__init__()
@@ -16,27 +15,41 @@ class Actor(nn.Module):
         self.head = head
         self.fc = nn.Linear(self.head.feature_dim, action_dim)
 
-        self.l1 = nn.Linear(self.head.feature_dim, 512)  # 注意是feature_dim
-        self.l2 = nn.Linear(512, 256)
-        self.l3 = nn.Linear(256, action_dim)
-
-        self._init_weights()
-
-    def _init_weights(self):
-        for layer in [self.l1, self.l2, self.l3]:
-            nn.init.orthogonal_(layer.weight, gain=1.0)
-            nn.init.constant_(layer.bias, 0.0)
-
-        nn.init.uniform_(self.l3.weight, -0.003, 0.003)
-
     def forward(self, state):
         a = self.state_preprocess(state) if self.state_preprocess else state
         a = self.head(a)
+        return torch.tanh(self.fc(a))
 
-        a = F.relu(self.l1(a))
-        a = F.relu(self.l2(a))
-
-        return torch.tanh(self.l3(a))
+    #     self.state_preprocess = state_preprocess
+    #     self.head = head
+    #     self.fc = nn.Linear(self.head.feature_dim, action_dim)
+    #
+    #     self.l1 = nn.Linear(self.head.feature_dim, 512)  # 注意是feature_dim
+    #     self.l2 = nn.Linear(512, 256)
+    #     self.l3 = nn.Linear(256, action_dim)
+    #
+    #     self._init_weights()
+    #
+    # def _init_weights(self):
+    #     # 前面层正常初始化
+    #     nn.init.orthogonal_(self.l1.weight, gain=1.0)
+    #     nn.init.orthogonal_(self.l2.weight, gain=1.0)
+    #
+    #     # 最后一层用更大的范围
+    #     nn.init.uniform_(self.l3.weight, -0.001, 0.001)  # 或者 -0.1, 0.1
+    #
+    #     # bias都设为0
+    #     for layer in [self.l1, self.l2, self.l3]:
+    #         nn.init.constant_(layer.bias, 0.0)
+    #
+    # def forward(self, state):
+    #     a = self.state_preprocess(state) if self.state_preprocess else state
+    #     a = self.head(a)
+    #
+    #     a = F.relu(self.l1(a))
+    #     a = F.relu(self.l2(a))
+    #
+    #     return torch.tanh(self.l3(a))
 
 class Critic(nn.Module):
     def __init__(self, state_preprocess, head):
@@ -45,16 +58,16 @@ class Critic(nn.Module):
         # Q1 architecture
         self.state_preprocess1 = state_preprocess
         self.head1 = head
-        self.l1 = nn.Linear(self.head1.input_dim, 256)
-        self.l2 = nn.Linear(256, 128)
-        self.l3 = nn.Linear(128, 1)
+        self.l1 = nn.Linear(self.head1.input_dim, 512)
+        self.l2 = nn.Linear(512, 256)
+        self.l3 = nn.Linear(256, 1)
 
         # Q2 architecture
         self.state_preprocess2 = copy.deepcopy(state_preprocess)
         self.head2 = copy.deepcopy(head)
-        self.l4 = nn.Linear(self.head2.input_dim, 256)
-        self.l5 = nn.Linear(256, 128)
-        self.l6 = nn.Linear(128, 1)
+        self.l4 = nn.Linear(self.head2.input_dim, 512)
+        self.l5 = nn.Linear(512, 256)
+        self.l6 = nn.Linear(256, 1)
 
     def forward(self, state, action):
         state1 = self.state_preprocess1(
@@ -259,6 +272,18 @@ class ReplayBuffer(object):
             self.mean, self.std = rew.mean(), rew.std()
             if np.isclose(self.std, 0, 1e-2):
                 self.mean, self.std = 0.0, 1.0
+
+    def update(self, rew):
+        buffer_size = self.size
+        current_pos = (self.ptr - 1) % buffer_size
+        failure_steps = min(4, self.ptr)
+        for i in range(failure_steps):
+            step_pos = (current_pos - i) % buffer_size
+
+            penalty_ratio = 0.5 ** i
+            adjusted_reward = rew * penalty_ratio
+
+            self.reward[step_pos] = adjusted_reward
 
     def sample(self, batch_size):
         ind = np.random.randint(0, self.size, size=batch_size)

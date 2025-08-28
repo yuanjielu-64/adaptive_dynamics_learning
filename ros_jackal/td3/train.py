@@ -1,4 +1,5 @@
 import argparse
+
 import GPUtil
 import yaml
 import numpy as np
@@ -14,12 +15,13 @@ import time
 from pprint import pformat
 
 import torch
+from gitdb.util import mkdir
 from tensorboardX import SummaryWriter
 
 sys.path.append(dirname(dirname(abspath(__file__))))
 from envs import registration
 from envs.wrappers import ShapingRewardWrapper, StackFrame
-# from td3.information_envs import InfoEnv
+from td3.information_envs import InfoEnv
 from td3.net import MLP, CNN
 from td3.rl import Actor, Critic, TD3, ReplayBuffer
 from td3.collector import CondorCollector, LocalCollector
@@ -54,7 +56,6 @@ def initialize_config(config_path, save_path):
 
     return config
 
-
 def initialize_logging(config):
     env_config = config["env_config"]
     training_config = config["training_config"]
@@ -71,6 +72,7 @@ def initialize_logging(config):
     print("    >>>> Saving to %s" % save_path)
     if not exists(save_path):
         os.makedirs(save_path)
+
     writer = SummaryWriter(save_path)
 
     shutil.copyfile(
@@ -125,16 +127,19 @@ def initialize_envs(config):
         if env_config["shaping_reward"]:
             env = ShapingRewardWrapper(env)
         env = StackFrame(env, stack_frame=env_config["stack_frame"])
+    else:
+        # If use condor, we want to avoid initializing env instance from the central learner
+        # So here we use a fake env with obs_space and act_space information
+        print("    >>>> Using actors on Condor")
+        env = InfoEnv(config)
 
     return env
-
 
 def seed(config):
     env_config = config["env_config"]
 
     np.random.seed(env_config['seed'])
     torch.manual_seed(env_config['seed'])
-
 
 def initialize_policy(config, env):
     training_config = config["training_config"]
@@ -195,32 +200,43 @@ def train(env, policy, buffer, config):
         if load_model_path != None:
             policy.load(load_model_path, "policy")
 
-    if env_config["use_condor"]:
-        collector = CondorCollector(policy, env, buffer)
-    else:
-        collector = LocalCollector(policy, env, buffer)
-
     training_args = training_config["training_args"]
+
+    if env_config["use_condor"]:
+        collector = CondorCollector(policy, env, buffer, BUFFER_PATH, training_config['use_actor'])
+    else:
+        collector = LocalCollector(policy, env, buffer, save_path)
+
     print("    >>>> Pre-collect experience")
-    collector.collect(n_steps=training_config['pre_collect'])
+
+    # collector.collect(n_steps=training_config['pre_collect'], status='test')
+    collector.collect(n_steps=training_config['pre_collect'], status='train')
 
     n_steps = 0
     n_iter = 0
     n_ep = 0
-    epinfo_buf = collections.deque(maxlen=300)
-    world_ep_buf = collections.defaultdict(lambda: collections.deque(maxlen=20))
+    epinfo_buf = collections.deque(maxlen=BUFFER_SIZE)
+    world_ep_buf = collections.defaultdict(lambda: collections.deque(maxlen=30))
     t0 = time.time()
+
+    tensorboard_step = 0
+
+    best_episode_length = float('inf')
+    best_episode_nav = float('-inf')
+
     while n_steps < training_args["max_step"]:
         # Linear decaying exploration noise from "start" -> "end"
         policy.exploration_noise = \
             - (training_config["exploration_noise_start"] - training_config["exploration_noise_end"]) \
             * n_steps / training_args["max_step"] + training_config["exploration_noise_start"]
 
-        steps, epinfo = collector.collect(training_args["collect_per_step"])
+        steps, epinfo = collector.collect(training_args["collect_per_step"], status = 'train')
+
         n_steps += steps
         n_iter += 1
         n_ep += len(epinfo)
         epinfo_buf.extend(epinfo)
+
         for d in epinfo:
             world = d["world"].split("/")[-1]
             world_ep_buf[world].append(d)
@@ -240,10 +256,44 @@ def train(env, policy, buffer, config):
             critic_losses.append(critic_loss)
 
         t1 = time.time()
+
+        test_steps, test_epinfo = collector.collect(n_steps=training_args['collect_per_step'], status='test')
+
+        status_counts = {"success": 0, "flip": 0, "timeout": 0}
+        total_episodes = len(epinfo_buf)
+
+        for epinfo in epinfo_buf:
+            status = epinfo.get("ep_status", "unknown")
+            if status in status_counts:
+                status_counts[status] += 1
+
+        success_rate = 100.0 * status_counts["success"] / total_episodes if total_episodes > 0 else 0.0
+        flip_rate = 100.0 * status_counts["flip"] / total_episodes if total_episodes > 0 else 0.0
+        timeout_rate = 100.0 * status_counts["timeout"] / total_episodes if total_episodes > 0 else 0.0
+
+        nav_metric_score = np.mean([epinfo["nav_metric"] for epinfo in epinfo_buf])
+
+        nav_metrics = [ep['nav_metric'] for ep in test_epinfo]
+        avg_nav_metric = sum(nav_metrics) / len(nav_metrics) if nav_metrics else 0
+
+        ep_times = [ep['ep_time'] for ep in test_epinfo]
+        avg_ep_time = sum(ep_times) / len(ep_times) if ep_times else 0
+
+        ep_time_steps = [ep['ep_len'] for ep in test_epinfo]
+        avg_ep_len = sum(ep_time_steps) / len(ep_time_steps) if ep_time_steps else 0
+
         log = {
-            "Episode_return": np.mean([epinfo["ep_rew"] for epinfo in epinfo_buf]),
+            "Episode_reward": np.mean([epinfo["ep_rew"] for epinfo in epinfo_buf]),
             "Episode_length": np.mean([epinfo["ep_len"] for epinfo in epinfo_buf]),
-            # "Success": np.mean([epinfo["success"] for epinfo in epinfo_buf]),
+            "Episode_nav_metric": nav_metric_score,
+            "Test_nav_metric": avg_nav_metric,
+            "Test_time" : avg_ep_time,
+            "Test_length": avg_ep_len,
+            "Test_counts": len(nav_metrics),
+            "Success_rate": success_rate,
+            "Flip_rate": flip_rate,
+            "Timeout_rate": timeout_rate,
+            "Status_counts": total_episodes,
             "Time": np.mean([epinfo["ep_time"] for epinfo in epinfo_buf]),
             "Collision": np.mean([epinfo["collision"] for epinfo in epinfo_buf]),
             "Actor_grad_norm": np.mean(actor_grad_norms),
@@ -257,44 +307,85 @@ def train(env, policy, buffer, config):
         }
 
         logging.info(pformat(log))
+        
+        # Only start performance evaluation and logging when epinfo_buf is full
+        if len(epinfo_buf) >= 0:
+            # Check for best performance (high episode_reward, low episode_length)
+            current_episode_reward = log["Episode_reward"]
+            current_episode_length = log["Test_length"]
+            current_episode_nav_metric = log["Test_nav_metric"]
 
-        if n_iter % training_config["log_intervals"] == 0:
-            for k in log.keys():
-                writer.add_scalar('train/' + k, log[k], global_step=n_steps)
+            if (current_episode_nav_metric > best_episode_nav):
+                policy_name = f"policy_step_{tensorboard_step}"
+                policy.save(save_path, policy_name)
+                with open(join(save_path, f"best_performance_step_{tensorboard_step}.txt"), 'w') as f:
+                    f.write(f"Best Performance at TensorBoard Step {tensorboard_step}:\n")
+                    f.write(f"Training Step: {n_steps}\n")
+                    f.write(f"Episode Reward: {current_episode_reward:.3f}\n")
+                    f.write(f"Episode Length: {current_episode_length:.3f}\n")
+                    f.write(f"Success Rate: {success_rate:.3f}%\n")
+                best_episode_nav = current_episode_nav_metric
+                best_episode_length = current_episode_length
 
-            policy.save(save_path, "policy")
+            if n_iter % training_config["log_intervals"] == 0:
+                for k in log.keys():
+                    writer.add_scalar('train/' + k, log[k], global_step=tensorboard_step)
 
-            for k in world_ep_buf.keys():
-                writer.add_scalar(k + "/Episode_return", np.mean([epinfo["ep_rew"] for epinfo in world_ep_buf[k]]),
-                                  global_step=n_steps)
-                writer.add_scalar(k + "/Episode_length", np.mean([epinfo["ep_len"] for epinfo in world_ep_buf[k]]),
-                                  global_step=n_steps)
-                # writer.add_scalar(k + "/Success", np.mean([epinfo["success"] for epinfo in world_ep_buf[k]]),
-                #                   global_step=n_steps)
-                writer.add_scalar(k + "/Time", np.mean([epinfo["ep_time"] for epinfo in world_ep_buf[k]]),
-                                  global_step=n_steps)
-                writer.add_scalar(k + "/Collision", np.mean([epinfo["collision"] for epinfo in world_ep_buf[k]]),
-                                  global_step=n_steps)
+                for k in world_ep_buf.keys():
+                    writer.add_scalar(k + "/Episode_reward", np.mean([epinfo["ep_rew"] for epinfo in world_ep_buf[k]]),
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Episode_length", np.mean([epinfo["ep_len"] for epinfo in world_ep_buf[k]]),
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Episode_nav_metric", np.mean([epinfo["nav_metric"] for epinfo in world_ep_buf[k]]),
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Success_rate", success_rate,
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Flip_rate", flip_rate,
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Timeout_rate", timeout_rate,
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Status_counts", total_episodes,
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Time", np.mean([epinfo["ep_time"] for epinfo in world_ep_buf[k]]),
+                                      global_step=tensorboard_step)
+                    writer.add_scalar(k + "/Collision", np.mean([epinfo["collision"] for epinfo in world_ep_buf[k]]),
+                                      global_step=tensorboard_step)
+            
+            # Increment tensorboard_step only when buffer is full
+            tensorboard_step += steps
 
     if env_config["use_condor"]:
-        BASE_PATH = os.getenv('BUFFER_PATH')
-        shutil.rmtree(BASE_PATH, ignore_errors=True)  # a way to force all the actors to stop
+        shutil.rmtree(BUFFER_PATH, ignore_errors=True)  # a way to force all the actors to stop
     else:
         train_envs.close()
 
 if __name__ == "__main__":
-    restart_gazebo()
+    # restart_gazebo()
 
     parser = argparse.ArgumentParser(description = 'Start training')
-    parser.add_argument('--config_path', dest='config_path', default="../configs/TD3.yaml")
+    parser.add_argument('--config_path', dest='config_path', default="../configs/")
+    parser.add_argument('--config_file', dest='config_file', default="TD3_function_cluster")
+    parser.add_argument('--buffer_path', dest='buffer_path', default="../buffer/")
+    parser.add_argument('--logging_path', dest='logging_path', default="../logging/")
+    parser.add_argument('--buffer_size', dest='buffer_size', default= 350)
     parser.add_argument('--device', dest='device', default=None)
 
     logging.getLogger().setLevel("INFO")
     args = parser.parse_args()
-    CONFIG_PATH = args.config_path
-    SAVE_PATH = "../logging/"
+    CONFIG_PATH = args.config_path + args.config_file + ".yaml"
+
+    BUFFER_PATH = args.buffer_path
+    BUFFER_SIZE = args.buffer_size
+
+    SAVE_PATH = args.logging_path
     print(">>>>>>>> Loading the configuration from %s" % CONFIG_PATH)
     config = initialize_config(CONFIG_PATH, SAVE_PATH)
+    ACTION_TYPE = config["env_config"]["action_type"]
+
+    if (os.path.exists(BUFFER_PATH + ACTION_TYPE) == False):
+        mkdir(BUFFER_PATH + ACTION_TYPE)
+
+    BUFFER_PATH = BUFFER_PATH + ACTION_TYPE
 
     seed(config)
     print(">>>>>>>> Creating the environments")

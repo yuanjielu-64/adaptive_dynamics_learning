@@ -122,7 +122,6 @@ class JackalGazebo(gym.Env):
         np.random.seed(seed)
 
     def reset(self):
-        a = 10
         raise NotImplementedError
 
     def _reset_move_base(self):

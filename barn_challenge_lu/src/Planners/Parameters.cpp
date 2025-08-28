@@ -23,8 +23,8 @@ namespace Antipatrea {
     void DDP::normalParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 800;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         global_goal = robot.getGlobalGoalCfg();
         local_goal = robot.getLocalGoalCfg();
@@ -50,8 +50,8 @@ namespace Antipatrea {
     void DDP::lowSpeedParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 1080;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         global_goal = robot.getGlobalGoalCfg();
         local_goal = robot.getLocalGoalCfg();
@@ -78,8 +78,8 @@ namespace Antipatrea {
     void DDP::recoverParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 1080;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         global_goal = robot.getGlobalGoalCfg();
         local_goal = robot.getLocalGoalCfg();
@@ -144,7 +144,7 @@ namespace Antipatrea {
     void DDPDWAPlanner::normalParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 18;
-        nr_steps_ = 20;
+        nr_steps_ = (int) robot.timeInterval.size();
 
         dt = robot.dt;
 
@@ -172,7 +172,7 @@ namespace Antipatrea {
     void DDPDWAPlanner::lowSpeedParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 25;
-        nr_steps_ = 20;
+        nr_steps_ = (int) robot.timeInterval.size();
 
         dt = robot.dt;
 
@@ -198,8 +198,8 @@ namespace Antipatrea {
 
     void DDPDWAPlanner::recoverParameters(Robot_config &robot) {
         v_steps_ = 20;
-        w_steps_ = 25;
-        nr_steps_ = 20;
+        w_steps_ = 20;
+        nr_steps_ = (int) robot.timeInterval.size();
 
         dt = robot.dt;
 
@@ -226,7 +226,7 @@ namespace Antipatrea {
     void DDPDWAPlanner::frontBackParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 25;
-        nr_steps_ = 20;
+        nr_steps_ = (int) robot.timeInterval.size();
 
         dt = robot.dt;
 
@@ -403,8 +403,8 @@ namespace Antipatrea {
     void DDPMPPIPlanner::normalParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 600;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         global_goal = robot.getGlobalGoalCfg();
         local_goal = robot.getLocalGoalCfg();
@@ -429,8 +429,8 @@ namespace Antipatrea {
     void DDPMPPIPlanner::lowSpeedParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 600;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         global_goal = robot.getGlobalGoalCfg();
         local_goal = robot.getLocalGoalCfg();
@@ -455,8 +455,8 @@ namespace Antipatrea {
     void DDPMPPIPlanner::recoverParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 600;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         distance = 0.05;
         robot_radius_ = 0.02;
@@ -481,8 +481,8 @@ namespace Antipatrea {
     void DDPMPPIPlanner::frontBackParameters(Robot_config &robot) {
         v_steps_ = 20;
         w_steps_ = 20;
-        nr_steps_ = 20;
-        nr_pairs_ = 600;
+        nr_steps_ = (int) robot.timeInterval.size();
+        nr_pairs_ = 550;
 
         distance = 0.05;
         robot_radius_ = 0.02;

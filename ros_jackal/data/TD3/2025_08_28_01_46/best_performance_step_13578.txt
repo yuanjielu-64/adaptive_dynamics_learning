@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 13578:
+Training Step: 14623
+Episode Reward: 118.252
+Episode Length: 49.241
+Success Rate: 95.000%

@@ -154,6 +154,8 @@ public:
 
     void arrayCallback(const std_msgs::Float64MultiArray::ConstPtr& msg);
 
+    void paramsCallback(const std_msgs::Float64MultiArray::ConstPtr& msg);
+
     void globalPathCallback(const nav_msgs::Path::ConstPtr& msg);
 
     void robotStatusCallback(const nav_msgs::Odometry::ConstPtr &msg);
@@ -270,6 +272,7 @@ public:
     double front_obs{};
 
     bool can_move{};
+    bool param_received{};
 
     Algorithm algorithm;
     Map currentMap;
@@ -308,7 +311,8 @@ public:
     std::vector<double> laserDataDistance;
     std::vector<double> timeInterval;
 
-    double v = 1;
+    double initial_v = 0;
+    double v = 1.5;
     double w = 1;
 
     int recover_times = 0;
@@ -328,6 +332,7 @@ protected:
     ros::Subscriber velocity_sub;
     ros::Subscriber global_path_sub;
     ros::Subscriber array_dt_sub;
+    ros::Subscriber params_sub;
 
     costmap_2d::Costmap2DROS *costmap{};
 

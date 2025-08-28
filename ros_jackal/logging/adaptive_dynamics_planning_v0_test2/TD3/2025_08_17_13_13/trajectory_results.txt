@@ -1,0 +1,2 @@
+Collision: 0, Recovery: 0.000000, Smoothness: -1.728304, Status: success, Time: 10.234, Reward: 363.402, World: world_298.world
+Collision: 0, Recovery: 0.000000, Smoothness: -1.648645, Status: success, Time: 9.373, Reward: 367.609, World: world_298.world

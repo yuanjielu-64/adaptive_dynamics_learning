@@ -8,9 +8,12 @@ try:
 except ModuleNotFoundError:
     pass
 
-from envs import JackalBase, JackalLaser, FidelityEquation, Visualization
+from envs import JackalBase, JackalLaser, FidelityEquation_function,  FidelityEquation_continues, Visualization
 
-class AdaptiveDynamicsPlanning(FidelityEquation, JackalLaser, Visualization):
+class AdaptiveDynamicsPlanning_Continues(JackalLaser, FidelityEquation_continues,  Visualization):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+class AdaptiveDynamicsPlanning_Functional(JackalLaser, FidelityEquation_function, Visualization):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)

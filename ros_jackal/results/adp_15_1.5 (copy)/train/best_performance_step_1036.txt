@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 1036:
+Training Step: 2082
+Episode Reward: 108.642
+Episode Length: 28.238
+Success Rate: 92.632%

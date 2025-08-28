@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 10473:
+Training Step: 11529
+Episode Reward: 129.215
+Episode Length: 53.200
+Success Rate: 98.246%

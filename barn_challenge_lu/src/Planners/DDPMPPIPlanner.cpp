@@ -10,6 +10,7 @@ namespace Antipatrea {
 
         parent = {0, 0, 0, robot->getPoseState().velocity_, robot->getPoseState().angular_velocity_, true};
         parent_odom = robot->getPoseState();
+        timeInterval = robot->timeInterval;
 
         std::pair<std::vector<PoseState>, bool> best_traj;
         best_traj.first.reserve(nr_steps_);
@@ -276,11 +277,6 @@ namespace Antipatrea {
         Timer::Clock d_t;
         Timer::Start(d_t);
 
-        double total_explore_time = 2;  // 1 second
-        timeInterval.clear();
-        timeInterval.reserve(nr_steps_);
-        weights.clear();
-        weights.reserve(nr_steps_);
 
         // double p = 1.7;
         // double alpha = 2;
@@ -300,11 +296,21 @@ namespace Antipatrea {
         //     weights.push_back(weight);
         // }
 
-        timeInterval = {
-            0.0123, 0.0276, 0.0396, 0.0501, 0.0598, 0.0688, 0.0774, 0.0855,
-            0.0934, 0.1009, 0.1083, 0.1154, 0.1223, 0.1291, 0.1357, 0.1422,
-            0.1486, 0.1548, 0.1610, 0.1670
+        // timeInterval = {
+        //     0.0123, 0.0276, 0.0396, 0.0501, 0.0598, 0.0688, 0.0774, 0.0855,
+        //     0.0934, 0.1009, 0.1083, 0.1154, 0.1223, 0.1291, 0.1357, 0.1422,
+        //     0.1486, 0.1548, 0.1610, 0.1670
+        // };
+
+        std::vector<double> full_weights = {
+            0.7833, 0.6998, 0.6586, 0.6300, 0.6074, 0.5891, 0.5730, 0.5595,
+            0.5468, 0.5358, 0.5259, 0.5165, 0.5079, 0.5001, 0.4926, 0.4856,
+            0.4789, 0.4727, 0.4667, 0.4612, 0.4600, 0.4589, 0.4570, 0.4540
         };
+
+        weights.clear();
+        int size = (int) timeInterval.size();
+        weights.assign(full_weights.begin(), full_weights.begin() + size);
 
         Cost min_cost(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1e6);
 
@@ -320,7 +326,7 @@ namespace Antipatrea {
 
         best_traj.first.reserve(nr_steps_);
 
-        num_threads = 16;
+        num_threads = (int) 8;
 
         std::vector<std::thread> threads;
         threads.reserve(num_threads);

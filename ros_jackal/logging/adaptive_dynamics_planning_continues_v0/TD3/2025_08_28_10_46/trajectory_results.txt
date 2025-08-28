@@ -1,0 +1,2 @@
+Type: ddp, Collision: 0, Recovery: 0.000000, Smoothness: -1.083649, Status: success, Time: 8.345, Reward: 139.209, World: world_2.world
+Type: adp, Collision: 0, Recovery: 0.000000, Smoothness: -1.345257, Status: success, Time: 7.852, Reward: 137.068, World: world_2.world

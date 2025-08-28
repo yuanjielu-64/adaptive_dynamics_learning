@@ -1,0 +1,5 @@
+Best Performance at TensorBoard Step 12582:
+Training Step: 13617
+Episode Reward: 129.586
+Episode Length: 50.537
+Success Rate: 98.333%

@@ -21,6 +21,7 @@
 #include <numeric>
 #include "Utils/Stats.hpp"
 #include <std_msgs/String.h>
+#include <sensor_msgs/Joy.h>
 
 class Robot_config {
 public:
@@ -155,6 +156,8 @@ public:
     void arrayCallback(const std_msgs::Float64MultiArray::ConstPtr& msg);
 
     void paramsCallback(const std_msgs::Float64MultiArray::ConstPtr& msg);
+    
+    void joyCallback(const sensor_msgs::Joy::ConstPtr& msg);
 
     void globalPathCallback(const nav_msgs::Path::ConstPtr& msg);
 
@@ -272,6 +275,7 @@ public:
     double front_obs{};
 
     bool can_move{};
+    bool can_move_joy{};
     bool param_received{};
 
     Algorithm algorithm;

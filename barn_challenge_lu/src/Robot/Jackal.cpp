@@ -444,6 +444,23 @@ void Robot_config::paramsCallback(const std_msgs::Float64MultiArray::ConstPtr& m
 
 }
 
+void Robot_config::joyCallback(const sensor_msgs::Joy::ConstPtr& msg) {
+    can_move_joy = false;
+    bool flag = false;
+
+    for (const auto& axis :msg->axes){
+        if (axis != 0){
+            flag = true;
+            break;
+        }
+    }
+
+    if (flag){
+        if (msg->axes[2] < 1 || msg->axes[5] < 1)
+            can_move_joy = true;
+    }
+}
+
 void Robot_config::goalCallback(const move_base_msgs::MoveBaseActionGoal::ConstPtr &msg) {
     ROS_INFO("Received goal to move to position x: %f, y: %f", msg->goal.target_pose.pose.position.x,
              msg->goal.target_pose.pose.position.y);
@@ -566,7 +583,7 @@ void Robot_config::resetStoppedStatus() {
 
 bool Robot_config::setup() {
 
-    if (!isPaused() && getRobotState() != INITIALIZING && !timeInterval.empty() && getPoseState().valid_ && can_move ) {
+    if (!isPaused() && getRobotState() != INITIALIZING && !timeInterval.empty() && getPoseState().valid_  && can_move_joy && can_move ) {
         return true;
     }
 
@@ -665,6 +682,7 @@ Robot_config::Robot_config()
       currentMap(ONLY_LASER_RECEIVED),
       getGoal(false),
       can_move(false),
+      can_move_joy(false),
       param_received(false),
       canBeSolved(true),
       rotating_angle(0.0),

@@ -51,40 +51,48 @@ void Robot_config::laserScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg
     laserDataDistance.reserve(msg->ranges.size());
 
     double angle = msg->angle_min;
-
     std::vector<double> last_valid_point = {INFINITY, INFINITY};
     front_obs = INFINITY;
 
-    for (const auto &range: msg->ranges) {
-        if (range > msg->range_min && range < msg->range_max && range <= 2 * v + 1) {
-            double laser_x = range * cos(angle);
-            double laser_y = range * sin(angle);
+    const double laser_offset_x = 0.1;
 
-            if (last_valid_point[0] != INFINITY) {
-                double dx = laser_x - last_valid_point[0];
-                double dy = laser_y - last_valid_point[1];
-                double distance = sqrt(dx * dx + dy * dy);
+    for (size_t i = 0; i < msg->ranges.size(); ++i) {
+        double range = msg->ranges[i];
 
-                if (distance < 0.01) {
-                    angle += msg->angle_increment;
-                    continue;
-                }
+        if (range < msg->range_min || range > msg->range_max) {
+            angle += msg->angle_increment;
+            continue;
+        }
+
+        double laser_x = range * cos(angle);
+        double laser_y = range * sin(angle);
+
+        double base_x = laser_x + laser_offset_x;
+        double base_y = -laser_y;
+
+        if (last_valid_point[0] != INFINITY) {
+            double dx = base_x - last_valid_point[0];
+            double dy = base_y - last_valid_point[1];
+            double distance = sqrt(dx * dx + dy * dy);
+
+            if (distance < 0.015) {
+                angle += msg->angle_increment;
+                continue;
             }
+        }
 
-            laserData.emplace_back(std::vector<double>{laser_x, laser_y});
-            laserDataDistance.emplace_back(range);
+        laserData.push_back({base_x, base_y});
+        laserDataDistance.push_back(range);
+        last_valid_point = {base_x, base_y};
 
-            last_valid_point = {laser_x, laser_y};
-
-            if (angle >= -M_PI/4 && angle <= M_PI/4) {
-                front_obs = std::min(front_obs, static_cast<double>(range));
-            }
+        if (angle >= -M_PI / 6 && angle <= M_PI / 6 ) {
+            front_obs = std::min(front_obs, range);
         }
 
         angle += msg->angle_increment;
     }
 
-    front_obs = front_obs - 0.33;
+    front_obs -= 0.2;
 }
 
 void Robot_config::costmapCallback(const nav_msgs::OccupancyGrid::ConstPtr &msg) {
